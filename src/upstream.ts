@@ -40,13 +40,26 @@ const closeMessage = Buffer.from("__close");
 
   // downstream socket instance
   let down: net.Socket | undefined;
-  const writeToDownstream = (id: number, queue: (Buffer | "close")[]) => {
+  const writeToDownstream = (id: number, data?: Buffer | "close") => {
+    const up = ups.get(id);
+    if (!up) {
+      // ignore
+      return;
+    }
+
+    // push to queue
+    if (data) {
+      up.queue.push(data);
+    }
+
     if (!down) {
       // ignore
       return;
     }
-    while (queue.length > 0) {
-      const data = queue.shift()!;
+
+    // send messages
+    while (up.queue.length > 0) {
+      const data = up.queue.shift()!;
       const downsteamData = Buffer.concat([
         Buffer.alloc(4),
         data === "close" ? closeMessage : data,
@@ -104,7 +117,7 @@ const closeMessage = Buffer.from("__close");
     // clear queue
     for (const [id, { queue }] of ups) {
       if (queue.length > 0) {
-        writeToDownstream(id, queue);
+        writeToDownstream(id);
       }
     }
   });
@@ -126,21 +139,18 @@ const closeMessage = Buffer.from("__close");
     ups.set(id, { socket: up, queue });
     up.on("data", (data) => {
       if (ups.has(id)) {
-        queue.push(data);
-        writeToDownstream(id, queue);
+        writeToDownstream(id, data);
       }
     });
     up.on("close", () => {
       if (ups.has(id)) {
-        queue.push("close");
-        writeToDownstream(id, queue);
+        writeToDownstream(id, "close");
         ups.delete(id);
       }
     });
     up.on("error", () => {
       if (ups.has(id)) {
-        queue.push("close");
-        writeToDownstream(id, queue);
+        writeToDownstream(id, "close");
         ups.delete(id);
       }
     });

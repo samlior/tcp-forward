@@ -33,10 +33,6 @@ const closeMessage = Buffer.from("__close");
     })
     .parse();
 
-  // auto-increment connection id
-  let globalId = 0;
-  const getId = () => ++globalId;
-
   // downstream sockets
   const downs = new Map<
     number,
@@ -93,6 +89,13 @@ const closeMessage = Buffer.from("__close");
         // save upstream instance
         up = _up;
 
+        // clear queue
+        for (const [id, { read }] of downs) {
+          if (read.length > 0) {
+            writeToUpstream(id);
+          }
+        }
+
         // change connecting flag
         connecting = false;
       };
@@ -136,13 +139,25 @@ const closeMessage = Buffer.from("__close");
     }
   };
 
-  const writeToUpstream = (id: number, read: (Buffer | "close")[]) => {
+  const writeToUpstream = (id: number, data?: Buffer | "close") => {
+    const down = downs.get(id);
+    if (!down) {
+      // ignore
+      return;
+    }
+
+    // push to queue
+    if (data) {
+      down.read.push(data);
+    }
+
     if (!up) {
       // ignore
       return;
     }
-    while (read.length > 0) {
-      const data = read.shift()!;
+
+    while (down.read.length > 0) {
+      const data = down.read.shift()!;
       const upsteamData = Buffer.concat([
         Buffer.alloc(4),
         data === "close" ? closeMessage : data,
@@ -175,21 +190,18 @@ const closeMessage = Buffer.from("__close");
       writeToDownstream(id);
       _down.on("data", (data) => {
         if (downs.has(id)) {
-          read.push(data);
-          writeToUpstream(id, read);
+          writeToUpstream(id, data);
         }
       });
       _down.on("close", () => {
         if (downs.has(id)) {
-          read.push("close");
-          writeToUpstream(id, read);
+          writeToUpstream(id, "close");
           downs.delete(id);
         }
       });
       _down.on("error", () => {
         if (downs.has(id)) {
-          read.push("close");
-          writeToUpstream(id, read);
+          writeToUpstream(id, "close");
           downs.delete(id);
         }
       });
