@@ -146,6 +146,7 @@ const closeMessage = Buffer.from("__close");
     });
     up.on("close", () => {
       if (ups.has(id)) {
+        console.log("upstream closed", id);
         writeToDownstream(id, "close");
         ups.delete(id);
       }
