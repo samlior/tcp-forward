@@ -93,11 +93,11 @@ const closeMessage = Buffer.from("__close");
       }
     });
     _down.on("close", () => {
-      down = undefined;
       console.log("lose downstream connection", remote);
+      down = undefined;
     });
     _down.on("error", (err) => {
-      console.log("downsteam error:", err);
+      console.log("downsteam connection error:", err);
       _down.destroy(); // safety off
       down = undefined;
     });
