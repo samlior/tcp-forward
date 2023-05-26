@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "bin": {
-    "tcp-forward": "./dist/index.js"
+    "tcp-forward": "dist/index.js"
   },
   "scripts": {
     "build": "tsc",
