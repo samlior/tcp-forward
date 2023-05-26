@@ -192,7 +192,6 @@ const closeMessage = Buffer.from("__close");
       writeToDownstream(id);
       _down.on("data", (data) => {
         if (downs.has(id)) {
-          console.log("forward", data.length, "bytes to upstream");
           writeToUpstream(id, data);
         }
       });
