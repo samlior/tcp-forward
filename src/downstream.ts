@@ -207,6 +207,26 @@ const closeMessage = Buffer.from("__close");
       });
     });
   };
+
+  // handle signal
+  let closing = false;
+  process.on("SIGINT", () => {
+    if (!closing) {
+      closing = true;
+      console.log("client is closing...");
+
+      // close all sockets
+      if (up) {
+        up.destroy();
+      }
+      for (const [, { socket }] of downs) {
+        socket.destroy();
+      }
+
+      console.log("client closed");
+      process.exit(0);
+    }
+  });
 })().catch((err) => {
   console.log("catch error:", err);
 });
