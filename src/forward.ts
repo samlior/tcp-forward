@@ -85,7 +85,7 @@ import { hideBin } from "yargs/helpers";
       }, 5000);
       server.close((err) => {
         if (err) {
-          console.log("server close error:", err);
+          console.log("tcp-forward server close error:", err);
         }
         console.log("tcp-forward server closed");
         process.exit(0);
