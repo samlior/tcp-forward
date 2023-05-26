@@ -31,16 +31,16 @@ import { hideBin } from "yargs/helpers";
     .parse();
 
   // create server
-  const server = net.createServer((socket) => {
-    console.log(
-      `new connection from ${socket.remoteAddress}:${socket.remotePort}`
-    );
+  const server = net.createServer();
+  server.on("connection", (socket) => {
+    const remote = `${socket.remoteAddress}:${socket.remotePort}`;
+    console.log("new connection from", remote);
     const forwardSocket = net.connect({
       host: args.forwardIp,
       port: args.forwardPort,
     });
     socket.on("close", () => {
-      `connection closed ${socket.remoteAddress}:${socket.remotePort}`;
+      console.log("connection closed", remote);
       forwardSocket.destroy(new Error("socket closed"));
     });
     socket.on("error", (err) => {
@@ -63,15 +63,15 @@ import { hideBin } from "yargs/helpers";
       socket.destroy(new Error("forward socket error: " + err.message));
     });
   });
-  server.listen(args.listenPort, args.bindingIp);
   server.on("listening", () => {
     console.log(
-      `tcp-forward server listening at ${args.bindingIp}:${args.listenPort}, forward to ${args.forwardIp}:${args.forwardPort}`
+      `tcp-forward server is listening at ${args.bindingIp}:${args.listenPort}, forward to ${args.forwardIp}:${args.forwardPort}`
     );
   });
   server.on("error", (err) => {
     console.log("server error:", err);
   });
+  server.listen(args.listenPort, args.bindingIp);
 
   // handle signal
   let closing = false;

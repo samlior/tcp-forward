@@ -1,8 +1,7 @@
 {
   "name": "tcp-forward",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
   "bin": {
     "tcp-forward": "dist/index.js"
   },
