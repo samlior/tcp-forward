@@ -74,6 +74,7 @@ const closeMessage = Buffer.from("__close");
           if (down) {
             writeToDownstream(id, data);
           } else {
+            console.log("incoming upstream connection", id);
             createDown(id, data);
           }
         });
@@ -86,6 +87,7 @@ const closeMessage = Buffer.from("__close");
           _up.destroy(); // safety off
           up = undefined;
         });
+        console.log("successfully connect with upstream server");
         // save upstream instance
         up = _up;
 
@@ -167,7 +169,7 @@ const closeMessage = Buffer.from("__close");
       if (data === "close") {
         console.log("close from downstream", id);
       } else {
-        console.log("write", data.length, "bytes for", id);
+        console.log("reply", data.length, "bytes for", id);
       }
     }
   };
@@ -190,6 +192,7 @@ const closeMessage = Buffer.from("__close");
       writeToDownstream(id);
       _down.on("data", (data) => {
         if (downs.has(id)) {
+          console.log("forward", data.length, "bytes to upstream");
           writeToUpstream(id, data);
         }
       });

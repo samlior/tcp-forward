@@ -60,16 +60,14 @@ const closeMessage = Buffer.from("__close");
     // send messages
     while (up.queue.length > 0) {
       const data = up.queue.shift()!;
-      const downsteamData = Buffer.concat([
-        Buffer.alloc(4),
-        data === "close" ? closeMessage : data,
-      ]);
-      downsteamData.writeInt32BE(id);
-      down.write(downsteamData);
+      const connectionId = Buffer.alloc(4);
+      connectionId.writeInt32BE(id);
       if (data === "close") {
         console.log("close from upstream", id);
+        down.write(Buffer.concat([connectionId, closeMessage]));
       } else {
         console.log("write", data.length, "bytes for", id);
+        down.write(Buffer.concat([connectionId, data]));
       }
     }
   };
@@ -80,10 +78,10 @@ const closeMessage = Buffer.from("__close");
     const remote = `${_down.remoteAddress}:${_down.remotePort}`;
     if (down) {
       console.log("ignore incoming downstream connection", remote);
-      _down.destroy(new Error("downstream connection already exists"));
+      _down.destroy();
       return;
     }
-    console.log("incomming downstream connection", remote);
+    console.log("incoming downstream connection", remote);
     _down.on("data", (data) => {
       if (data.length < 4) {
         console.log("downstream data is less than 4 bytes, ignore");
@@ -114,6 +112,9 @@ const closeMessage = Buffer.from("__close");
       _down.destroy(); // safety off
       down = undefined;
     });
+    // save downstream instance
+    down = _down;
+
     // clear queue
     for (const [id, { queue }] of ups) {
       if (queue.length > 0) {
@@ -135,6 +136,7 @@ const closeMessage = Buffer.from("__close");
   const upstream = net.createServer();
   upstream.on("connection", (up) => {
     const id = getId();
+    console.log("incoming upstream connection", id);
     const queue: (Buffer | "close")[] = [];
     ups.set(id, { socket: up, queue });
     up.on("data", (data) => {
