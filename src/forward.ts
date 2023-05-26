@@ -65,7 +65,7 @@ import { hideBin } from "yargs/helpers";
   });
   server.on("listening", () => {
     console.log(
-      `tcp-forward server is listening at ${args.bindingIp}:${args.listenPort}, forward to ${args.forwardIp}:${args.forwardPort}`
+      `forward server is listening at ${args.bindingIp}:${args.listenPort}, forward to ${args.forwardIp}:${args.forwardPort}`
     );
   });
   server.on("error", (err) => {
@@ -78,16 +78,16 @@ import { hideBin } from "yargs/helpers";
   process.on("SIGINT", () => {
     if (!closing) {
       closing = true;
-      console.log("tcp-forward server is closing...");
+      console.log("forward server is closing...");
       setTimeout(() => {
-        console.log("tcp-forward server close timeout");
+        console.log("forward server close timeout");
         process.exit(1);
       }, 5000);
       server.close((err) => {
         if (err) {
-          console.log("tcp-forward server close error:", err);
+          console.log("forward server close error:", err);
         }
-        console.log("tcp-forward server closed");
+        console.log("forward server closed");
         process.exit(0);
       });
     }

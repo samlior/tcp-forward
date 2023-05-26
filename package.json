@@ -1,13 +1,17 @@
 {
   "name": "tcp-forward",
   "version": "1.0.0",
-  "main": "dist/index.js",
+  "main": "dist/forward.js",
   "bin": {
-    "tcp-forward": "dist/index.js"
+    "tcp-forward": "dist/forward.js",
+    "client": "dist/client.js",
+    "server": "dist/server.js"
   },
   "scripts": {
     "build": "tsc",
-    "start": "ts-node src/index.ts"
+    "start:forward": "ts-node src/forward.ts",
+    "start:client": "ts-node src/client.ts",
+    "start:server": "ts-node src/server.ts"
   },
   "author": "samlior",
   "license": "MIT",
