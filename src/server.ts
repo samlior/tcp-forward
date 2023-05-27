@@ -58,14 +58,15 @@ import * as messages from "./messages";
     // send messages
     while (up.queue.length > 0) {
       const data = up.queue.shift()!;
-      const connectionId = Buffer.alloc(4);
-      connectionId.writeInt32BE(id);
+      const content = data === "close" ? messages.close : data;
+      const downstreamData = Buffer.concat([Buffer.alloc(8), content]);
+      downstreamData.writeInt32BE(id);
+      downstreamData.writeInt32BE(content.length, 4);
+      down.write(downstreamData);
       if (data === "close") {
         console.log("close from upstream", id);
-        down.write(Buffer.concat([connectionId, messages.close]));
       } else {
-        console.log("write", data.length, "bytes for", id);
-        down.write(Buffer.concat([connectionId, data]));
+        console.log("reply", data.length, "bytes for", id);
       }
     }
   };
@@ -80,27 +81,59 @@ import * as messages from "./messages";
       return;
     }
     console.log("incoming downstream connection", remote);
+
+    // pending data
+    let length = 0;
+    let id = 0;
+    let pending = Buffer.alloc(0);
+
     _down.on("data", (data) => {
-      if (data.length < 4) {
-        console.log("downstream data is less than 4 bytes, ignore");
-        return;
-      }
-      const id = data.readInt32BE();
-      data = data.subarray(4);
-      const up = ups.get(id);
-      if (up) {
-        if (data.equals(messages.close)) {
-          console.log("close from downstream", id);
-          up.socket.destroy(new Error("downstream close"));
-          ups.delete(id);
-        } else {
-          console.log("reply", data.length, "bytes for", id);
-          up.socket.write(data);
+      while (data.length > 0) {
+        if (length === 0) {
+          if (data.length < 8) {
+            console.log("downstream data is less than 8 bytes, ignore");
+            return;
+          }
+          // init pending data
+          id = data.readInt32BE();
+          length = data.readInt32BE(4);
+          pending = Buffer.alloc(0);
+
+          // slice data, ignore header
+          data = data.subarray(8);
         }
-      } else {
-        console.log("ignore reply for", id);
+
+        if (length > 0) {
+          // append pending data
+          const _length = length > data.length ? data.length : length;
+          const _data = data.subarray(0, _length);
+          length -= _length;
+          pending = Buffer.concat([pending, _data]);
+          data = data.subarray(_length);
+        }
+
+        if (length === 0) {
+          const up = ups.get(id);
+          if (up) {
+            if (data.equals(messages.close)) {
+              console.log("close from downstream", id);
+              up.socket.destroy(new Error("downstream close"));
+              ups.delete(id);
+            } else {
+              console.log("reply", data.length, "bytes for", id);
+              up.socket.write(data);
+            }
+          } else {
+            console.log("ignore reply for", id);
+          }
+
+          // clear pending data
+          id = 0;
+          pending = Buffer.alloc(0);
+        }
       }
     });
+
     _down.on("close", () => {
       console.log("lose downstream connection", remote);
       down = undefined;

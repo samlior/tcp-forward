@@ -94,26 +94,57 @@ import * as messages from "./messages";
         // remove listeners
         _up.off("connect", handleConnect);
         _up.off("error", handleConnectError);
-        // add listeners
+
+        // pending data
+        let length = 0;
+        let id = 0;
+        let pending = Buffer.alloc(0);
+
         _up.on("data", (data) => {
           if (data.length > 1 && data[0] === 5) {
             console.log("ignore socks5 data...");
             return;
           }
-          if (data.length < 4) {
-            console.log("upstream data is less than 4 bytes, ignore");
-            return;
-          }
-          const id = data.readInt32BE();
-          data = data.subarray(4);
-          const down = downs.get(id);
-          if (down) {
-            writeToDownstream(id, data);
-          } else {
-            console.log("incoming upstream connection", id);
-            createDown(id, data);
+
+          while (data.length > 0) {
+            if (length === 0) {
+              if (data.length < 8) {
+                console.log("upstream data is less than 8 bytes, ignore");
+                return;
+              }
+              // init pending data
+              id = data.readInt32BE();
+              length = data.readInt32BE(4);
+              pending = Buffer.alloc(0);
+
+              // slice data, ignore header
+              data = data.subarray(8);
+            }
+
+            if (length > 0) {
+              // append pending data
+              const _length = length > data.length ? data.length : length;
+              const _data = data.subarray(0, _length);
+              length -= _length;
+              pending = Buffer.concat([pending, _data]);
+              data = data.subarray(_length);
+            }
+
+            if (length === 0) {
+              if (downs.has(id)) {
+                writeToDownstream(id, data);
+              } else {
+                console.log("incoming upstream connection", id);
+                createDown(id, data);
+              }
+
+              // clear pending data
+              id = 0;
+              pending = Buffer.alloc(0);
+            }
           }
         });
+
         _up.on("close", () => {
           console.log("lose upstream connection");
           up = undefined;
@@ -196,11 +227,10 @@ import * as messages from "./messages";
 
     while (down.read.length > 0) {
       const data = down.read.shift()!;
-      const upsteamData = Buffer.concat([
-        Buffer.alloc(4),
-        data === "close" ? messages.close : data,
-      ]);
+      const content = data === "close" ? messages.close : data;
+      const upsteamData = Buffer.concat([Buffer.alloc(8), content]);
       upsteamData.writeInt32BE(id);
+      upsteamData.writeInt32BE(content.length, 4);
       up.write(upsteamData);
       if (data === "close") {
         console.log("close from downstream", id);
