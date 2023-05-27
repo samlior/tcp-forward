@@ -1,4 +1,4 @@
-declare module "socks5-client" {
+declare module "socks5-client/lib/Socket" {
   import type { Socket, SocketConstructorOpts } from "net";
 
   interface Socks5ClientSocketOptions extends SocketConstructorOpts {

@@ -3,7 +3,7 @@
 import net from "net";
 import process from "process";
 import yargs from "yargs";
-import Socks5ClientSocket from "socks5-client";
+import Socks5ClientSocket from "socks5-client/lib/Socket";
 import { hideBin } from "yargs/helpers";
 
 (async function () {
