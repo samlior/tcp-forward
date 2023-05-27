@@ -91,11 +91,15 @@ import * as messages from "./messages";
         .setKeepAlive(true);
 
       const handleConnect = () => {
-        // revmove listeners
+        // remove listeners
         _up.off("connect", handleConnect);
         _up.off("error", handleConnectError);
         // add listeners
         _up.on("data", (data) => {
+          if (data.length > 1 && data[0] === 5) {
+            console.log("ignore socks5 data...");
+            return;
+          }
           if (data.length < 4) {
             console.log("upstream data is less than 4 bytes, ignore");
             return;
