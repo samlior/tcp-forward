@@ -211,7 +211,7 @@ import * as messages from "./messages";
   };
 
   const createDown = (id: number, data: Buffer) => {
-    const _down = createSocket()
+    const _down = new net.Socket()
       .connect(args.downstreamPort, args.downstreamIp)
       .setKeepAlive(true);
     const write: Buffer[] = [data];
