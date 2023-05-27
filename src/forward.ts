@@ -31,7 +31,7 @@ import { hideBin } from "yargs/helpers";
     .parse();
 
   // create server
-  const server = net.createServer();
+  const server = net.createServer({ keepAlive: true });
   server.on("connection", (socket) => {
     const remote = `${socket.remoteAddress}:${socket.remotePort}`;
     console.log("new connection from", remote);

@@ -4,9 +4,7 @@ import net from "net";
 import process from "process";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
-
-// magical fixed close message
-const closeMessage = Buffer.from("__close");
+import * as messages from "./messages";
 
 (async function () {
   // parse args
@@ -56,6 +54,7 @@ const closeMessage = Buffer.from("__close");
       const _up = net.connect({
         port: args.upstreamPort,
         host: args.upstreamIp,
+        keepAlive: true,
       });
 
       const handleConnect = () => {
@@ -128,7 +127,7 @@ const closeMessage = Buffer.from("__close");
     if (down.connected) {
       while (down.write.length > 0) {
         const data = down.write.shift()!;
-        if (data.equals(closeMessage)) {
+        if (data.equals(messages.close)) {
           console.log("close from upstream", id);
           downs.delete(id);
           down.socket.destroy();
@@ -162,7 +161,7 @@ const closeMessage = Buffer.from("__close");
       const data = down.read.shift()!;
       const upsteamData = Buffer.concat([
         Buffer.alloc(4),
-        data === "close" ? closeMessage : data,
+        data === "close" ? messages.close : data,
       ]);
       upsteamData.writeInt32BE(id);
       up.write(upsteamData);
@@ -178,6 +177,7 @@ const closeMessage = Buffer.from("__close");
     const _down = net.connect({
       port: args.downstreamPort,
       host: args.downstreamIp,
+      keepAlive: true,
     });
     const write: Buffer[] = [data];
     const read: (Buffer | "close")[] = [];

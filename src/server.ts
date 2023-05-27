@@ -4,9 +4,7 @@ import net from "net";
 import process from "process";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
-
-// magical fixed close message
-const closeMessage = Buffer.from("__close");
+import * as messages from "./messages";
 
 (async function () {
   // parse args
@@ -64,7 +62,7 @@ const closeMessage = Buffer.from("__close");
       connectionId.writeInt32BE(id);
       if (data === "close") {
         console.log("close from upstream", id);
-        down.write(Buffer.concat([connectionId, closeMessage]));
+        down.write(Buffer.concat([connectionId, messages.close]));
       } else {
         console.log("write", data.length, "bytes for", id);
         down.write(Buffer.concat([connectionId, data]));
@@ -73,7 +71,7 @@ const closeMessage = Buffer.from("__close");
   };
 
   // create downstream server
-  const downstream = net.createServer();
+  const downstream = net.createServer({ keepAlive: true });
   downstream.on("connection", (_down) => {
     const remote = `${_down.remoteAddress}:${_down.remotePort}`;
     if (down) {
@@ -91,7 +89,7 @@ const closeMessage = Buffer.from("__close");
       data = data.subarray(4);
       const up = ups.get(id);
       if (up) {
-        if (data.equals(closeMessage)) {
+        if (data.equals(messages.close)) {
           console.log("close from downstream", id);
           up.socket.destroy(new Error("downstream close"));
           ups.delete(id);
@@ -133,7 +131,7 @@ const closeMessage = Buffer.from("__close");
   downstream.listen(args.downstreamPort, args.bindingIp);
 
   // create upstream server
-  const upstream = net.createServer();
+  const upstream = net.createServer({ keepAlive: true });
   upstream.on("connection", (up) => {
     const id = getId();
     console.log("incoming upstream connection", id);
