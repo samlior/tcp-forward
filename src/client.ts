@@ -4,6 +4,7 @@ import net from "net";
 import process from "process";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
+import Socks5ClientSocket from "socks5-client";
 import * as messages from "./messages";
 
 (async function () {
@@ -29,7 +30,41 @@ import * as messages from "./messages";
       demandOption: true,
       description: "downstream ip address",
     })
+    .option("proxy", {
+      boolean: true,
+      description: "connect with upstream through proxy",
+    })
+    .option("proxy-username", {
+      string: true,
+      description: "proxy username",
+    })
+    .option("proxy-password", {
+      string: true,
+      description: "proxy password",
+    })
+    .option("proxy-host", {
+      string: true,
+      description: "proxy host",
+    })
+    .option("proxy-port", {
+      number: true,
+      description: "proxy port",
+    })
     .parse();
+
+  // create socket or proxied socket
+  function createSocket(options?: net.SocketConstructorOpts): net.Socket {
+    if (args.proxy) {
+      return new Socks5ClientSocket({
+        ...options,
+        socksHost: args.proxyHost,
+        socksPort: args.proxyPort,
+        socksUsername: args.proxyUsername,
+        socksPassword: args.proxyPassword,
+      });
+    }
+    return new net.Socket(options);
+  }
 
   // downstream sockets
   const downs = new Map<
@@ -51,9 +86,9 @@ import * as messages from "./messages";
       connecting = true;
 
       // create upstream
-      const _up = net.connect({
-        port: args.upstreamPort,
+      const _up = createSocket().connect({
         host: args.upstreamIp,
+        port: args.upstreamPort,
         keepAlive: true,
       });
 
@@ -174,7 +209,7 @@ import * as messages from "./messages";
   };
 
   const createDown = (id: number, data: Buffer) => {
-    const _down = net.connect({
+    const _down = createSocket().connect({
       port: args.downstreamPort,
       host: args.downstreamIp,
       keepAlive: true,

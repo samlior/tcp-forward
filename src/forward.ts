@@ -3,6 +3,7 @@
 import net from "net";
 import process from "process";
 import yargs from "yargs";
+import Socks5ClientSocket from "socks5-client";
 import { hideBin } from "yargs/helpers";
 
 (async function () {
@@ -28,14 +29,48 @@ import { hideBin } from "yargs/helpers";
       demandOption: true,
       description: "forward ip address",
     })
+    .option("proxy", {
+      boolean: true,
+      description: "connect with upstream through proxy",
+    })
+    .option("proxy-username", {
+      string: true,
+      description: "proxy username",
+    })
+    .option("proxy-password", {
+      string: true,
+      description: "proxy password",
+    })
+    .option("proxy-host", {
+      string: true,
+      description: "proxy host",
+    })
+    .option("proxy-port", {
+      number: true,
+      description: "proxy port",
+    })
     .parse();
+
+  // create socket or proxied socket
+  function createSocket(options?: net.SocketConstructorOpts): net.Socket {
+    if (args.proxy) {
+      return new Socks5ClientSocket({
+        ...options,
+        socksHost: args.proxyHost,
+        socksPort: args.proxyPort,
+        socksUsername: args.proxyUsername,
+        socksPassword: args.proxyPassword,
+      });
+    }
+    return new net.Socket(options);
+  }
 
   // create server
   const server = net.createServer({ keepAlive: true });
   server.on("connection", (socket) => {
     const remote = `${socket.remoteAddress}:${socket.remotePort}`;
     console.log("new connection from", remote);
-    const forwardSocket = net.connect({
+    const forwardSocket = createSocket().connect({
       host: args.forwardIp,
       port: args.forwardPort,
     });
