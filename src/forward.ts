@@ -70,10 +70,9 @@ import { hideBin } from "yargs/helpers";
   server.on("connection", (socket) => {
     const remote = `${socket.remoteAddress}:${socket.remotePort}`;
     console.log("new connection from", remote);
-    const forwardSocket = createSocket().connect({
-      host: args.forwardIp,
-      port: args.forwardPort,
-    });
+    const forwardSocket = createSocket()
+      .connect(args.forwardPort, args.forwardIp)
+      .setKeepAlive(true);
     socket.on("close", () => {
       console.log("connection closed", remote);
       forwardSocket.destroy(new Error("socket closed"));

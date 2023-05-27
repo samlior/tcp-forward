@@ -86,11 +86,9 @@ import * as messages from "./messages";
       connecting = true;
 
       // create upstream
-      const _up = createSocket().connect({
-        host: args.upstreamIp,
-        port: args.upstreamPort,
-        keepAlive: true,
-      });
+      const _up = createSocket()
+        .connect(args.upstreamPort, args.upstreamIp)
+        .setKeepAlive(true);
 
       const handleConnect = () => {
         // revmove listeners
@@ -209,11 +207,9 @@ import * as messages from "./messages";
   };
 
   const createDown = (id: number, data: Buffer) => {
-    const _down = createSocket().connect({
-      port: args.downstreamPort,
-      host: args.downstreamIp,
-      keepAlive: true,
-    });
+    const _down = createSocket()
+      .connect(args.downstreamPort, args.downstreamIp)
+      .setKeepAlive(true);
     const write: Buffer[] = [data];
     const read: (Buffer | "close")[] = [];
     const ctx = { socket: _down, write, read, connected: false };
