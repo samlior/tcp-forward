@@ -147,6 +147,8 @@ import { hideBin } from "yargs/helpers";
             return;
           }
 
+          console.log("incoming downstream connection challenging succeeded");
+
           // choose a upstream
           if (pendingUps.length > 0) {
             // pick an existing pending upstream from the queue
