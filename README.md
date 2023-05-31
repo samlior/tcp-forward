@@ -2,16 +2,20 @@
 
 Simple TCP forwarding tools
 
-# Build
+## Requirements
+
+![Node Version](https://img.shields.io/badge/node-%e2%89%a519.0.0-blue)
+
+## Build
 
 ```
 git clone https://github.com/samlior/tcp-forward && cd tcp-forward
 npm install && npm run build
 ```
 
-# Usage
+## Usage
 
-## Direct mode
+### Direct mode
 
 ```
 $ npx stcp-forward --help
@@ -24,12 +28,16 @@ $ npx stcp-forward --help
   --forward-ip    forward ip address                             [字符串] [必需]
 ```
 
-## C/S mode
+### C/S mode
 
 1. Generate a new `ED25519` key
 
+   Example:
+
    ```
-   npx stcp-helper new
+   $ npx stcp-helper new
+   Private key: de5de99ce8ee3c3c6f1dd3db0887377e0ad45a09b1410b23abf088bd2d1baf92
+   Public key: d8a7e86670f3da498af3dd5c9dc7903efb82b6091105108bd42066a84bdfc7ca
    ```
 
 2. Run the `stcp-server` on a relay server that has a public IP address
