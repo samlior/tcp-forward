@@ -205,22 +205,16 @@ import Socks5ClientSocket from "socks5-client/lib/Socket";
       ctx.connected = true;
       writeToDownstream(id);
       _down.on("data", (data) => {
-        if (downs.has(id)) {
-          writeToUpstream(id, data);
-        }
+        writeToUpstream(id, data);
       });
       _down.on("close", () => {
-        if (downs.has(id)) {
-          console.log("downstream closed", id);
-          writeToUpstream(id, "close");
-        }
+        console.log("downstream closed", id);
+        writeToUpstream(id, "close");
       });
     });
     _down.on("error", (err) => {
-      if (downs.has(id)) {
-        console.log("downstream id:", id, "error:", err);
-        writeToUpstream(id, "close");
-      }
+      console.log("downstream id:", id, "error:", err);
+      writeToUpstream(id, "close");
     });
   };
 
