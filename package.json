@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "main": "dist/forward.js",
   "bin": {
-    "tcp-forward": "dist/forward.js",
-    "client": "dist/client.js",
-    "server": "dist/server.js"
+    "stcp-forward": "dist/forward.js",
+    "stcp-client": "dist/client.js",
+    "stcp-server": "dist/server.js"
   },
   "scripts": {
     "build": "tsc",
