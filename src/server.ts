@@ -5,9 +5,10 @@ import crypto from "crypto";
 import process from "process";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
-import * as ed25519 from "@noble/ed25519";
 
 (async function () {
+  const ed25519 = await import("@noble/ed25519");
+
   // parse args
   const args = await yargs(hideBin(process.argv))
     .option("upstream-port", {

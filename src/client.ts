@@ -4,10 +4,11 @@ import net from "net";
 import process from "process";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
-import * as ed25519 from "@noble/ed25519";
 import Socks5ClientSocket from "socks5-client/lib/Socket";
 
 (async function () {
+  const ed25519 = await import("@noble/ed25519");
+
   // parse args
   const args = await yargs(hideBin(process.argv))
     .option("upstream-port", {
@@ -144,7 +145,7 @@ import Socks5ClientSocket from "socks5-client/lib/Socket";
     let id: number | undefined = undefined;
     const _pending = createSocket();
     _pending.on("connect", () => {
-      _pending.once("data", (question) => {
+      _pending.once("data", async (question) => {
         if (question.length !== 32) {
           console.log("invalid question:", question.toString("hex"));
           _pending.destroy();
@@ -152,7 +153,7 @@ import Socks5ClientSocket from "socks5-client/lib/Socket";
         }
 
         // send signature to the remote
-        _pending.write(ed25519.sign(question, args.privateKey));
+        _pending.write(await ed25519.signAsync(question, args.privateKey));
 
         _pending.on("data", (data) => {
           if (id === undefined) {

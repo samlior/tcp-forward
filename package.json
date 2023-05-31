@@ -5,16 +5,21 @@
   "bin": {
     "stcp-forward": "dist/forward.js",
     "stcp-client": "dist/client.js",
-    "stcp-server": "dist/server.js"
+    "stcp-server": "dist/server.js",
+    "stcp-helper": "dist/helper.js"
   },
   "scripts": {
     "build": "tsc",
     "start:forward": "ts-node src/forward.ts",
     "start:client": "ts-node src/client.ts",
-    "start:server": "ts-node src/server.ts"
+    "start:server": "ts-node src/server.ts",
+    "start:helper": "ts-node src/helper.ts"
   },
   "author": "samlior",
   "license": "MIT",
+  "engines": {
+    "node": ">=19.0.0"
+  },
   "devDependencies": {
     "@types/node": "^20.2.4",
     "@types/yargs": "^17.0.24",
