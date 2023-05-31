@@ -136,9 +136,7 @@ import Socks5ClientSocket from "socks5-client/lib/Socket";
     }
 
     let id: number | undefined = undefined;
-    const _pending = createSocket()
-      .connect(args.upstreamPort, args.upstreamIp)
-      .setKeepAlive(true);
+    const _pending = createSocket();
     _pending.on("connect", () => {
       _pending.on("data", (data) => {
         if (id === undefined) {
@@ -186,6 +184,13 @@ import Socks5ClientSocket from "socks5-client/lib/Socket";
         }
       }
     });
+
+    // connect to remote
+    _pending
+      .connect(args.upstreamPort, args.upstreamIp)
+      .setKeepAlive(true)
+      .setTimeout(1000);
+
     // save pending socket object
     pending = _pending;
   };
