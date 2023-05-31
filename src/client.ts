@@ -186,10 +186,7 @@ import Socks5ClientSocket from "socks5-client/lib/Socket";
     });
 
     // connect to remote
-    _pending
-      .connect(args.upstreamPort, args.upstreamIp)
-      .setKeepAlive(true)
-      .setTimeout(1000);
+    _pending.connect(args.upstreamPort, args.upstreamIp).setKeepAlive(true);
 
     // save pending socket object
     pending = _pending;
