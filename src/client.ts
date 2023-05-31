@@ -50,6 +50,11 @@ import Socks5ClientSocket from "socks5-client/lib/Socket";
       number: true,
       description: "proxy port",
     })
+    .option("private-key", {
+      string: true,
+      demandOption: true,
+      description: "ED25519 private key",
+    })
     .parse();
 
   // create socket or proxied socket
@@ -139,37 +144,48 @@ import Socks5ClientSocket from "socks5-client/lib/Socket";
     let id: number | undefined = undefined;
     const _pending = createSocket();
     _pending.on("connect", () => {
-      _pending.on("data", (data) => {
-        if (id === undefined) {
-          id = getId();
-          ups.set(id, { socket: _pending });
-
-          // create a new pending socket now
-          pending = undefined;
-          createPending();
+      _pending.once("data", (question) => {
+        if (question.length !== 32) {
+          console.log("invalid question:", question.toString("hex"));
+          _pending.destroy();
+          return;
         }
 
-        if (ups.has(id)) {
-          if (downs.has(id)) {
-            writeToDownstream(id, data);
-          } else {
-            createDown(id, data);
+        // send signature to the remote
+        _pending.write(ed25519.sign(question, args.privateKey));
+
+        _pending.on("data", (data) => {
+          if (id === undefined) {
+            id = getId();
+            ups.set(id, { socket: _pending });
+
+            // create a new pending socket now
+            pending = undefined;
+            createPending();
           }
-        }
-      });
-      _pending.on("close", () => {
-        if (id !== undefined) {
-          console.log("upstream closed", id);
-          writeToDownstream(id, "close");
-        } else {
-          // maybe something is wrong,
-          // sleep a while and reconnect
-          pending = undefined;
-          if (!closing) {
-            setTimeout(() => createPending(), 1000);
+
+          if (ups.has(id)) {
+            if (downs.has(id)) {
+              writeToDownstream(id, data);
+            } else {
+              createDown(id, data);
+            }
           }
-        }
+        });
       });
+    });
+    _pending.on("close", () => {
+      if (id !== undefined) {
+        console.log("upstream closed", id);
+        writeToDownstream(id, "close");
+      } else {
+        // maybe something is wrong,
+        // sleep a while and reconnect
+        pending = undefined;
+        if (!closing) {
+          setTimeout(() => createPending(), 1000);
+        }
+      }
     });
     _pending.on("error", (err) => {
       if (id !== undefined) {
@@ -210,10 +226,10 @@ import Socks5ClientSocket from "socks5-client/lib/Socket";
       _down.on("data", (data) => {
         writeToUpstream(id, data);
       });
-      _down.on("close", () => {
-        console.log("downstream closed", id);
-        writeToUpstream(id, "close");
-      });
+    });
+    _down.on("close", () => {
+      console.log("downstream closed", id);
+      writeToUpstream(id, "close");
     });
     _down.on("error", (err) => {
       console.log("downstream id:", id, "error:", err);
