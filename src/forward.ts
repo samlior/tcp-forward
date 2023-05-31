@@ -40,10 +40,10 @@ import { hideBin } from "yargs/helpers";
       .setKeepAlive(true);
     socket.on("close", () => {
       console.log("connection closed", remote);
-      forwardSocket.destroy(new Error("socket closed"));
+      forwardSocket.destroy();
     });
     socket.on("error", (err) => {
-      forwardSocket.destroy(new Error("socket error: " + err.message));
+      forwardSocket.destroy();
     });
     forwardSocket.on("connect", () => {
       socket.on("data", (data) => {
@@ -56,10 +56,10 @@ import { hideBin } from "yargs/helpers";
       });
     });
     forwardSocket.on("close", () => {
-      socket.destroy(new Error("forward socket closed"));
+      socket.destroy();
     });
-    forwardSocket.on("error", (err) => {
-      socket.destroy(new Error("forward socket error: " + err.message));
+    forwardSocket.on("error", () => {
+      socket.destroy();
     });
   });
   server.on("listening", () => {
