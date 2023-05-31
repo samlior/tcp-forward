@@ -2,6 +2,13 @@
 
 Simple TCP forwarding tools
 
+# Build
+
+```
+git clone https://github.com/samlior/tcp-forward && cd tcp-forward
+npm install && npm run build
+```
+
 # Usage
 
 ## Direct mode
@@ -25,7 +32,7 @@ $ npx stcp-forward --help
    npx stcp-helper new
    ```
 
-2. Run the `stcp-server` on a relay server with a public IP address
+2. Run the `stcp-server` on a relay server that has a public IP address
 
    ```
    $ npx stcp-server --help
@@ -68,3 +75,5 @@ $ npx stcp-forward --help
    ```
    npx stcp-client --upstream-port 55554 --downstream-port 80 --upstream-ip $SERVER_IP --downstream-ip "127.0.0.1" --private-key de5de99ce8ee3c3c6f1dd3db0887377e0ad45a09b1410b23abf088bd2d1baf92
    ```
+
+4. Now you can access port 80 on the client machine via `$SERVER_IP:55555`
