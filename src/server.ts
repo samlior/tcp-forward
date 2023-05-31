@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 
 import net from "net";
+import crypto from "crypto";
 import process from "process";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
+import * as ed25519 from "@noble/ed25519";
 
 (async function () {
   // parse args
@@ -20,8 +22,13 @@ import { hideBin } from "yargs/helpers";
     })
     .option("binding-ip", {
       string: true,
-      demandOption: true,
+      default: "127.0.0.1",
       description: "binding ip address",
+    })
+    .option("public-key", {
+      string: true,
+      demandOption: true,
+      description: "ED25519 public key",
     })
     .parse();
 
@@ -106,31 +113,68 @@ import { hideBin } from "yargs/helpers";
       down.destroy();
       return;
     }
-    console.log("incoming downstream connection");
 
-    // choose a upstream
+    console.log("incoming downstream connection, challenging...");
+
+    // downstream id
     let id: number | undefined;
-    if (pendingUps.length > 0) {
-      // pick an existing pending upstream from the queue
-      id = pendingUps.shift()!;
-      downs.set(id, { socket: down });
-      // immediately write the data in the memory
-      writeToDownstream(id);
-    } else {
-      pendingDown = down;
-      setPendingDownId = (_id) => (id = _id);
-    }
 
-    down.on("data", (data) => {
-      if (id !== undefined) {
-        writeToUpstream(id, data);
-      }
+    // challenge response timeout
+    let timeout = setTimeout(() => {
+      console.log("downstream challenge timeout");
+      down.destroy();
+    }, 1000);
+
+    // generate and send question to the remote
+    const question = crypto.randomBytes(32);
+    down.write(question);
+
+    down.once("data", (data) => {
+      clearTimeout(timeout);
+      ed25519
+        .verifyAsync(data, question, args.publicKey)
+        .then((result) => {
+          if (!result) {
+            throw new Error("verify failed");
+          }
+
+          if (pendingDown) {
+            console.log(
+              "pending downstream already exists, ignore incoming downstream"
+            );
+            down.destroy();
+            return;
+          }
+
+          // choose a upstream
+          if (pendingUps.length > 0) {
+            // pick an existing pending upstream from the queue
+            id = pendingUps.shift()!;
+            downs.set(id, { socket: down });
+            // immediately write the data in the memory
+            writeToDownstream(id);
+          } else {
+            // waiting for incoming upstream
+            pendingDown = down;
+            setPendingDownId = (_id) => (id = _id);
+          }
+
+          down.on("data", (data) => {
+            if (id !== undefined) {
+              writeToUpstream(id, data);
+            }
+          });
+        })
+        .catch((err) => {
+          console.log("downstream challenge failed:", err);
+          down.destroy();
+        });
     });
     down.on("close", () => {
       if (id !== undefined) {
         console.log("close from downstream id:", id);
         writeToUpstream(id, "close");
-      } else {
+      } else if (pendingDown === down) {
         console.log("lose pending downstream");
         pendingDown = undefined;
         setPendingDownId = undefined;
@@ -140,7 +184,7 @@ import { hideBin } from "yargs/helpers";
       if (id !== undefined) {
         console.log("downstream id:", id, "error:", err);
         writeToUpstream(id, "close");
-      } else {
+      } else if (pendingDown === down) {
         console.log("lose pending downstream error:", err);
         pendingDown = undefined;
         setPendingDownId = undefined;

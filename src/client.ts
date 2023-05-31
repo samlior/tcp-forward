@@ -4,6 +4,7 @@ import net from "net";
 import process from "process";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
+import * as ed25519 from "@noble/ed25519";
 import Socks5ClientSocket from "socks5-client/lib/Socket";
 
 (async function () {

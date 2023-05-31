@@ -22,6 +22,7 @@
     "typescript": "^5.0.4"
   },
   "dependencies": {
+    "@noble/ed25519": "^2.0.0",
     "socks5-client": "^1.2.8",
     "yargs": "^17.7.2"
   }
