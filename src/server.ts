@@ -114,6 +114,8 @@ import { hideBin } from "yargs/helpers";
       // pick an existing pending upstream from the queue
       id = pendingUps.shift()!;
       downs.set(id, { socket: down });
+      // immediately write the data in the memory
+      writeToDownstream(id);
     } else {
       pendingDown = down;
       setPendingDownId = (_id) => (id = _id);
