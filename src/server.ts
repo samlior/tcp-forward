@@ -215,6 +215,18 @@ import { hideBin } from "yargs/helpers";
       closing = true;
       console.log("server is closing...");
 
+      setTimeout(() => {
+        console.log("server close timeout");
+        process.exit(1);
+      }, 5000);
+      Promise.all([
+        new Promise<void>((r) => downstream.close(() => r())),
+        new Promise<void>((r) => upstream.close(() => r())),
+      ]).then(() => {
+        console.log("server closed");
+        process.exit(0);
+      });
+
       // close all sockets
       for (const [, { socket }] of downs) {
         socket.destroy();
@@ -227,18 +239,6 @@ import { hideBin } from "yargs/helpers";
         pendingDown = undefined;
         setPendingDownId = undefined;
       }
-
-      setTimeout(() => {
-        console.log("server close timeout");
-        process.exit(1);
-      }, 5000);
-      Promise.all([
-        new Promise<void>((r) => downstream.close(() => r())),
-        new Promise<void>((r) => upstream.close(() => r())),
-      ]).then(() => {
-        console.log("server closed");
-        process.exit(0);
-      });
     }
   });
 })().catch((err) => {
