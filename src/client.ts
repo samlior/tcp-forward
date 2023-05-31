@@ -240,6 +240,9 @@ import Socks5ClientSocket from "socks5-client/lib/Socket";
       process.exit(0);
     }
   });
+
+  // start connecting to the server
+  createPending();
 })().catch((err) => {
   console.log("catch error:", err);
 });
