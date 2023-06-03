@@ -21,10 +21,15 @@ import { hideBin } from "yargs/helpers";
       demandOption: true,
       description: "downstream port",
     })
-    .option("binding-ip", {
+    .option("upstream-ip", {
       string: true,
       default: "127.0.0.1",
-      description: "binding ip address",
+      description: "upstream binding ip address",
+    })
+    .option("downstream-ip", {
+      string: true,
+      default: "127.0.0.1",
+      description: "downstream binding ip address",
     })
     .option("public-key", {
       string: true,
@@ -202,7 +207,7 @@ import { hideBin } from "yargs/helpers";
   downstream.on("error", (err) => {
     console.log("downstream error:", err);
   });
-  downstream.listen(args.downstreamPort, args.bindingIp);
+  downstream.listen(args.downstreamPort, args.downstreamIp);
 
   // create upstream server
   const upstream = net.createServer({ keepAlive: true });
@@ -253,7 +258,7 @@ import { hideBin } from "yargs/helpers";
   upstream.on("error", (err) => {
     console.log("upstream error:", err);
   });
-  upstream.listen(args.upstreamPort, args.bindingIp);
+  upstream.listen(args.upstreamPort, args.upstreamIp);
 
   // handle signal
   let closing = false;
