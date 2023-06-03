@@ -201,7 +201,7 @@ import { hideBin } from "yargs/helpers";
   });
   downstream.on("listening", () => {
     console.log(
-      `downstream server is listening at ${args.bindingIp}:${args.downstreamPort}`
+      `downstream server is listening at ${args.downstreamIp}:${args.downstreamPort}`
     );
   });
   downstream.on("error", (err) => {
@@ -252,7 +252,7 @@ import { hideBin } from "yargs/helpers";
   });
   upstream.on("listening", () => {
     console.log(
-      `upstream server is listening at ${args.bindingIp}:${args.upstreamPort}`
+      `upstream server is listening at ${args.upstreamIp}:${args.upstreamPort}`
     );
   });
   upstream.on("error", (err) => {
