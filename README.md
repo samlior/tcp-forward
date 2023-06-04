@@ -45,12 +45,13 @@ $ npx stcp-forward --help
    ```
    $ npx stcp-server --help
    选项：
-   --help             显示帮助信息                                         [布尔]
-   --version          显示版本号                                           [布尔]
-   --upstream-port    upstream port                                 [数字] [必需]
-   --downstream-port  downstream port                               [数字] [必需]
-   --binding-ip       binding ip address           [字符串] [默认值: "127.0.0.1"]
-   --public-key       ED25519 public key                          [字符串] [必需]
+      --help             显示帮助信息                                         [布尔]
+      --version          显示版本号                                           [布尔]
+      --upstream-port    upstream port                                 [数字] [必需]
+      --downstream-port  downstream port                               [数字] [必需]
+      --upstream-ip      upstream binding ip address  [字符串] [默认值: "127.0.0.1"]
+      --downstream-ip    downstream binding ip address[字符串] [默认值: "127.0.0.1"]
+      --public-key       ED25519 public key                          [字符串] [必需]
    ```
 
    Example:
@@ -64,18 +65,18 @@ $ npx stcp-forward --help
    ```
    $ npx stcp-client --help
    选项：
-   --help             显示帮助信息                                         [布尔]
-   --version          显示版本号                                           [布尔]
-   --upstream-port    upstream port                                 [数字] [必需]
-   --downstream-port  downstream port                               [数字] [必需]
-   --upstream-ip      upstream ip address                         [字符串] [必需]
-   --downstream-ip    downstream ip address                       [字符串] [必需]
-   --proxy            connect with upstream through proxy                  [布尔]
-   --proxy-username   proxy username                                     [字符串]
-   --proxy-password   proxy password                                     [字符串]
-   --proxy-host       proxy host                                         [字符串]
-   --proxy-port       proxy port                                           [数字]
-   --private-key      ED25519 private key                         [字符串] [必需]
+      --help             显示帮助信息                                         [布尔]
+      --version          显示版本号                                           [布尔]
+      --upstream-port    upstream port                                 [数字] [必需]
+      --downstream-port  downstream port                               [数字] [必需]
+      --upstream-ip      upstream ip address                         [字符串] [必需]
+      --downstream-ip    downstream ip address                       [字符串] [必需]
+      --proxy            connect with upstream through proxy                  [布尔]
+      --proxy-username   proxy username                                     [字符串]
+      --proxy-password   proxy password                                     [字符串]
+      --proxy-host       proxy host                                         [字符串]
+      --proxy-port       proxy port                                           [数字]
+      --private-key      ED25519 private key                         [字符串] [必需]
    ```
 
    Example:
