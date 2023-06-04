@@ -74,7 +74,9 @@ import { hideBin } from "yargs/helpers";
 
     const down = downs.get(id);
     if (!down) {
-      // ignore
+      if (data) {
+        console.log("pending", data.length, "bytes for", id);
+      }
       return;
     }
 
@@ -112,6 +114,7 @@ import { hideBin } from "yargs/helpers";
   // create downstream server
   const downstream = net.createServer({ keepAlive: true });
   downstream.on("connection", (down) => {
+    const remote = `${down.remoteAddress}:${down.remotePort}`;
     if (pendingDown) {
       console.log(
         "pending downstream already exists, ignore incoming downstream"
@@ -146,13 +149,17 @@ import { hideBin } from "yargs/helpers";
 
           if (pendingDown) {
             console.log(
-              "pending downstream already exists, ignore incoming downstream"
+              "pending downstream already exists, ignore incoming downstream from:",
+              remote
             );
             down.destroy();
             return;
           }
 
-          console.log("incoming downstream connection challenging succeeded");
+          console.log(
+            "incoming downstream connection challenging succeeded, from:",
+            remote
+          );
 
           // choose a upstream
           if (pendingUps.length > 0) {

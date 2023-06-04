@@ -214,8 +214,7 @@ import Socks5ClientSocket from "socks5-client/lib/Socket";
     const _down = new net.Socket()
       .connect(args.downstreamPort, args.downstreamIp)
       .setKeepAlive(true);
-    const queue: (Buffer | "close")[] = [data];
-    const ctx = { socket: _down, queue, connected: false };
+    const ctx = { socket: _down, queue: [data], connected: false };
     downs.set(id, ctx);
     _down.on("connect", () => {
       if (!downs.has(id)) {
