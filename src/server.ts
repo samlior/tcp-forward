@@ -7,6 +7,7 @@ import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
 (async function () {
+  // import ESM package
   const ed25519 = await import("@noble/ed25519");
 
   // parse args
@@ -36,6 +37,11 @@ import { hideBin } from "yargs/helpers";
       demandOption: true,
       description: "ED25519 public key",
     })
+    .option("max-pending-downstream", {
+      number: true,
+      default: 5,
+      description: "max connection size of pending downstream",
+    })
     .parse();
 
   // auto increment id
@@ -56,9 +62,9 @@ import { hideBin } from "yargs/helpers";
   // pending upstreams
   const pendingUps: number[] = [];
 
-  // pending downstream
-  let pendingDown: net.Socket | undefined = undefined;
-  let setPendingDownId: ((id: number) => void) | undefined = undefined;
+  // pending downstreams
+  const pendingDowns: { socket: net.Socket; setId: (id: number) => void }[] =
+    [];
 
   const writeToDownstream = (id: number, data?: Buffer | "close") => {
     const up = ups.get(id);
@@ -115,22 +121,27 @@ import { hideBin } from "yargs/helpers";
   const downstream = net.createServer({ keepAlive: true });
   downstream.on("connection", (down) => {
     const remote = `${down.remoteAddress}:${down.remotePort}`;
-    if (pendingDown) {
+    if (pendingDowns.length >= args.maxPendingDownstream) {
       console.log(
-        "pending downstream already exists, ignore incoming downstream"
+        "too many pending downstreams, ignore incoming downstream from:",
+        remote
       );
       down.destroy();
       return;
     }
 
-    console.log("incoming downstream connection, challenging...");
+    console.log(
+      "incoming downstream connection from:",
+      remote,
+      " challenging..."
+    );
 
     // downstream id
     let id: number | undefined;
 
     // challenge response timeout
     let timeout = setTimeout(() => {
-      console.log("downstream challenge timeout");
+      console.log("downstream challenge timeout, from:", remote);
       down.destroy();
     }, 1000);
 
@@ -147,9 +158,9 @@ import { hideBin } from "yargs/helpers";
             throw new Error("verify failed");
           }
 
-          if (pendingDown) {
+          if (pendingDowns.length >= args.maxPendingDownstream) {
             console.log(
-              "pending downstream already exists, ignore incoming downstream from:",
+              "too many pending downstreams, ignore incoming downstream from:",
               remote
             );
             down.destroy();
@@ -170,8 +181,10 @@ import { hideBin } from "yargs/helpers";
             writeToDownstream(id);
           } else {
             // waiting for incoming upstream
-            pendingDown = down;
-            setPendingDownId = (_id) => (id = _id);
+            pendingDowns.push({
+              socket: down,
+              setId: (_id) => (id = _id),
+            });
           }
 
           down.on("data", (data) => {
@@ -189,20 +202,24 @@ import { hideBin } from "yargs/helpers";
       if (id !== undefined) {
         console.log("close from downstream id:", id);
         writeToUpstream(id, "close");
-      } else if (pendingDown === down) {
-        console.log("lose pending downstream");
-        pendingDown = undefined;
-        setPendingDownId = undefined;
+      } else {
+        const index = pendingDowns.findIndex(({ socket }) => socket === down);
+        if (index !== -1) {
+          console.log("lose pending downstream");
+          pendingDowns.splice(index, 1);
+        }
       }
     });
     down.on("error", (err) => {
       if (id !== undefined) {
         console.log("downstream id:", id, "error:", err);
         writeToUpstream(id, "close");
-      } else if (pendingDown === down) {
-        console.log("lose pending downstream error:", err);
-        pendingDown = undefined;
-        setPendingDownId = undefined;
+      } else {
+        const index = pendingDowns.findIndex(({ socket }) => socket === down);
+        if (index !== -1) {
+          console.log("lose pending downstream");
+          pendingDowns.splice(index, 1);
+        }
       }
     });
   });
@@ -227,11 +244,10 @@ import { hideBin } from "yargs/helpers";
     ups.set(id, { socket: up, queue: [] });
 
     // choose a downstream
-    if (pendingDown && setPendingDownId) {
-      downs.set(id, { socket: pendingDown });
-      setPendingDownId(id);
-      pendingDown = undefined;
-      setPendingDownId = undefined;
+    if (pendingDowns.length > 0) {
+      const { socket: down, setId } = pendingDowns.shift()!;
+      downs.set(id, { socket: down });
+      setId(id);
     } else {
       // push self to pending queue
       pendingUps.push(id);
@@ -293,10 +309,8 @@ import { hideBin } from "yargs/helpers";
       for (const [, { socket }] of ups) {
         socket.destroy();
       }
-      if (pendingDown) {
-        pendingDown.destroy();
-        pendingDown = undefined;
-        setPendingDownId = undefined;
+      for (const { socket } of pendingDowns) {
+        socket.destroy();
       }
     }
   });

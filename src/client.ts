@@ -7,6 +7,7 @@ import { hideBin } from "yargs/helpers";
 import Socks5ClientSocket from "socks5-client/lib/Socket";
 
 (async function () {
+  // import ESM package
   const ed25519 = await import("@noble/ed25519");
 
   // parse args
@@ -56,6 +57,11 @@ import Socks5ClientSocket from "socks5-client/lib/Socket";
       demandOption: true,
       description: "ED25519 private key",
     })
+    .option("max-pending-downstream", {
+      number: true,
+      default: 5,
+      description: "max connection size of pending downstream",
+    })
     .parse();
 
   // create socket or proxied socket
@@ -86,7 +92,7 @@ import Socks5ClientSocket from "socks5-client/lib/Socket";
   const ups = new Map<number, { socket: net.Socket }>();
 
   // pending upstream socket
-  let pending: net.Socket | undefined = undefined;
+  const pendingUps: net.Socket[] = [];
 
   // auto increment id
   let autoId = 0;
@@ -137,31 +143,38 @@ import Socks5ClientSocket from "socks5-client/lib/Socket";
   };
 
   const createPending = () => {
-    if (pending !== undefined) {
+    if (pendingUps.length >= args.maxPendingDownstream) {
       // safety check
       return;
     }
 
     let id: number | undefined = undefined;
-    const _pending = createSocket();
-    _pending.on("connect", () => {
-      _pending.once("data", async (question) => {
+    const up = createSocket();
+    up.on("connect", () => {
+      up.once("data", async (question) => {
         if (question.length !== 32) {
           console.log("invalid question:", question.toString("hex"));
-          _pending.destroy();
+          up.destroy();
           return;
         }
 
         // send signature to the remote
-        _pending.write(await ed25519.signAsync(question, args.privateKey));
+        up.write(await ed25519.signAsync(question, args.privateKey));
 
-        _pending.on("data", (data) => {
+        console.log("successfully connect to upstream");
+
+        up.on("data", (data) => {
           if (id === undefined) {
             id = getId();
-            ups.set(id, { socket: _pending });
+            ups.set(id, { socket: up });
 
-            // create a new pending socket now
-            pending = undefined;
+            // remove self from pending list
+            const index = pendingUps.indexOf(up);
+            if (index !== -1) {
+              pendingUps.splice(index, 1);
+            }
+
+            // immediately create a new pending socket
             createPending();
           }
 
@@ -175,39 +188,48 @@ import Socks5ClientSocket from "socks5-client/lib/Socket";
         });
       });
     });
-    _pending.on("close", () => {
+    up.on("close", () => {
       if (id !== undefined) {
         console.log("upstream closed", id);
         writeToDownstream(id, "close");
       } else {
+        // remove self from pending list
+        const index = pendingUps.indexOf(up);
+        if (index !== -1) {
+          pendingUps.splice(index, 1);
+        }
         // maybe something is wrong,
         // sleep a while and reconnect
-        pending = undefined;
         if (!closing) {
+          console.log("pending upstream closed, reconnecting...");
           setTimeout(() => createPending(), 1000);
         }
       }
     });
-    _pending.on("error", (err) => {
+    up.on("error", (err) => {
       if (id !== undefined) {
         console.log("upstream id:", id, "error:", err);
         writeToDownstream(id, "close");
       } else {
-        console.log("pending upstream error:", err);
+        // remove self from pending list
+        const index = pendingUps.indexOf(up);
+        if (index !== -1) {
+          pendingUps.splice(index, 1);
+        }
         // maybe something is wrong,
         // sleep a while and reconnect
-        pending = undefined;
         if (!closing) {
+          console.log("pending upstream error:", err, "reconnecting...");
           setTimeout(() => createPending(), 1000);
         }
       }
     });
 
     // connect to remote
-    _pending.connect(args.upstreamPort, args.upstreamIp).setKeepAlive(true);
+    up.connect(args.upstreamPort, args.upstreamIp).setKeepAlive(true);
 
     // save pending socket object
-    pending = _pending;
+    pendingUps.push(up);
   };
 
   const createDown = (id: number, data: Buffer) => {
@@ -245,13 +267,13 @@ import Socks5ClientSocket from "socks5-client/lib/Socket";
       console.log("client is closing...");
 
       // close all sockets
-      if (pending) {
-        pending.destroy();
-      }
       for (const [, { socket }] of downs) {
         socket.destroy();
       }
       for (const [, { socket }] of ups) {
+        socket.destroy();
+      }
+      for (const socket of pendingUps) {
         socket.destroy();
       }
 
@@ -261,7 +283,14 @@ import Socks5ClientSocket from "socks5-client/lib/Socket";
   });
 
   // start connecting to the server
-  createPending();
+  for (let i = 0; i < args.maxPendingDownstream; i++) {
+    createPending();
+  }
+
+  // TODO: remove debug log
+  setInterval(() => {
+    console.log("pending upstreams:", pendingUps.length);
+  }, 5000);
 })().catch((err) => {
   console.log("catch error:", err);
 });
