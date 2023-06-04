@@ -61,7 +61,7 @@ $ npx stcp-forward --help
    Example:
 
    ```
-   npx stcp-server --upstream-port 55555 --downstream-port 55554 --binding-ip 0.0.0.0 --public-key d8a7e86670f3da498af3dd5c9dc7903efb82b6091105108bd42066a84bdfc7ca
+   npx stcp-server --upstream-port 55555 --downstream-port 55554 --upstream-ip 0.0.0.0 --downstream-ip 0.0.0.0 --public-key d8a7e86670f3da498af3dd5c9dc7903efb82b6091105108bd42066a84bdfc7ca
    ```
 
 3. Run the `stcp-client` on a client machine that does not have a public IP address
