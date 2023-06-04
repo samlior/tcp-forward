@@ -286,11 +286,6 @@ import Socks5ClientSocket from "socks5-client/lib/Socket";
   for (let i = 0; i < args.maxPendingDownstream; i++) {
     createPending();
   }
-
-  // TODO: remove debug log
-  setInterval(() => {
-    console.log("pending upstreams:", pendingUps.length);
-  }, 5000);
 })().catch((err) => {
   console.log("catch error:", err);
 });
