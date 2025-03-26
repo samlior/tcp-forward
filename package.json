@@ -9,7 +9,10 @@
     "stcp-helper": "dist/helper.js"
   },
   "scripts": {
-    "build": "tsc",
+    "postinstall": "npm run build",
+    "build": "tsc && npm run rollup",
+    "rollup": "rollup --config",
+    "clear": "rm -rf dist",
     "start:forward": "ts-node src/forward.ts",
     "start:client": "ts-node src/client.ts",
     "start:server": "ts-node src/server.ts",
@@ -21,8 +24,13 @@
     "node": ">=19.0.0"
   },
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^28.0.3",
+    "@rollup/plugin-json": "^6.1.0",
+    "@rollup/plugin-node-resolve": "^16.0.1",
+    "@rollup/plugin-terser": "^0.4.4",
     "@types/node": "^20.17.27",
     "@types/yargs": "^17.0.33",
+    "rollup": "^4.37.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.2"
   },
